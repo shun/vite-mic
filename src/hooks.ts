@@ -3,6 +3,11 @@ import { useState, useRef, MouseEventHandler } from "react";
 import { ChatOpenAI } from "@langchain/openai";
 import { OpenAI } from "openai";
 
+export const useOpenAI = () => {
+  const [apiKey, setApiKey] = useState<string>("");
+  return { apiKey, setApiKey };
+};
+
 export const useAudioRecord = () => {
   const [recording, setRecording] = useState(false);
   const [source, setSource] = useState<string | null>(null);
@@ -51,16 +56,22 @@ export const useAudioRecord = () => {
   return { recording, source, startRecording, stopRecording };
 };
 
-export const useWhisper = () => {
+export const useWhisper = (apiKey: string) => {
+  // const [count, setCount] = useState<number>(0);
   const [transcribeText, setTranscribeText] = useState<string>("");
   const transcribe = async (url: string) => {
+    // setCount((count) => count + 1);
+    // if (count > 3) {
+    //   console.error("too many call: ", count)
+    //   return;
+    // }
     fetch(url)
       .then((res) => {
         return res.blob();
       })
       .then((blobData) => {
         const openai = new OpenAI({
-          apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+          apiKey: apiKey,
           dangerouslyAllowBrowser: true,
         });
 
@@ -78,17 +89,20 @@ export const useWhisper = () => {
       });
   };
 
-  return { transcribeText, transcribe };
+  return { transcribeText, setTranscribeText, transcribe };
 };
 
-const model = new ChatOpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  model: "gpt-3.5-turbo",
-  temperature: 0,
-});
-
-export const useChatGPT = (setLlmtext: Dispatch<SetStateAction<string>>) => {
+export const useChatGPT = (
+  apiKey: string,
+  setLlmtext: Dispatch<SetStateAction<string>>
+) => {
   const start = async (txt: string) => {
+    const model = new ChatOpenAI({
+      apiKey: apiKey,
+      model: "gpt-4o",
+      temperature: 0.7,
+    });
+
     const stream = await model.stream(txt);
     for await (const chunk of stream) {
       if (chunk.content) {
