@@ -53,7 +53,12 @@ export const useAudioRecord = () => {
     setSource(audioUrl);
   };
 
-  return { recording, source, startRecording, stopRecording };
+  const revokeSource = () => {
+    const audioUrl = source
+    setSource("")
+    URL.revokeObjectURL(audioUrl)
+  }
+  return { recording, source, startRecording, stopRecording, revokeSource };
 };
 
 export const useWhisper = (apiKey: string) => {
