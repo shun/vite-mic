@@ -13,76 +13,86 @@ import {
   InputRightElement,
   InputGroup,
 } from "@chakra-ui/react";
-import { useState, useEffect, useRef, useCallback } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  MutableRefObject,
+  Dispatch,
+  SetStateAction,
+  ChangeEvent,
+} from "react";
 import { useAudioRecord, useWhisper, useChatGPT, useOpenAI } from "./hooks";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 type ConfigSectionProps = {
-  apiKeyRef;
-  setApiKey;
-  prompt;
-  setPrompt;
-}
-const ConfigSection = (props) => {
-  const {apiKeyRef, setApiKey, prompt, setPrompt} = {...props}
+  apiKeyRef: MutableRefObject<string>;
+  setApiKey: Dispatch<SetStateAction<string>>;
+  prompt: string;
+  setPrompt: Dispatch<SetStateAction<string>>;
+};
+const ConfigSection = (props: ConfigSectionProps) => {
+  const { apiKeyRef, setApiKey, prompt, setPrompt } = { ...props };
   const [show, setShow] = useState<boolean>(false);
   const toggleShow = () => setShow((show) => !show);
 
-  const updateApiKey = (event) => {
+  const updateApiKey = (event: ChangeEvent<HTMLInputElement>) => {
     apiKeyRef.current = event.target.value;
     setApiKey(apiKeyRef.current);
   };
 
   return (
-      <Accordion allowMultiple>
-        <AccordionItem>
-          <h3>
-            <AccordionButton>
-              <Box as="span" flex="1" textAlign="left">
-                Config
-              </Box>
-              <AccordionIcon />
-            </AccordionButton>
-          </h3>
+    <Accordion allowMultiple>
+      <AccordionItem>
+        <h3>
+          <AccordionButton>
+            <Box as="span" flex="1" textAlign="left">
+              Config
+            </Box>
+            <AccordionIcon />
+          </AccordionButton>
+        </h3>
 
-          <AccordionPanel pb="4">
-            <h3>API KEY</h3>
-            <InputGroup>
-              <Input
-                placeholder="OpenAI API KEY"
-                type={show ? "text" : "password"}
-                defaultValue={apiKeyRef.current}
-                onChange={updateApiKey}
-              />
-              <InputRightElement width="4.5rem">
-                <Button p={2} h="1.75rem" size="sm" onClick={toggleShow}>
-                  {show ? "Hide" : "Show"}
-                </Button>
-              </InputRightElement>
-            </InputGroup>
-          </AccordionPanel>
-
-          <AccordionPanel pb="4">
-            <h3>プロンプト</h3>
-            <Textarea
-              rows={6}
-              placeholder="プロンプト"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+        <AccordionPanel pb="4">
+          <h3>API KEY</h3>
+          <InputGroup>
+            <Input
+              placeholder="OpenAI API KEY"
+              type={show ? "text" : "password"}
+              defaultValue={apiKeyRef.current}
+              onChange={updateApiKey}
             />
-          </AccordionPanel>
-        </AccordionItem>
-      </Accordion>
-  )
-}
+            <InputRightElement width="4.5rem">
+              <Button p={2} h="1.75rem" size="sm" onClick={toggleShow}>
+                {show ? "Hide" : "Show"}
+              </Button>
+            </InputRightElement>
+          </InputGroup>
+        </AccordionPanel>
+
+        <AccordionPanel pb="4">
+          <h3>プロンプト</h3>
+          <Textarea
+            rows={6}
+            placeholder="プロンプト"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+          />
+        </AccordionPanel>
+      </AccordionItem>
+    </Accordion>
+  );
+};
 function App() {
   const { setApiKey } = useOpenAI();
   const apiKeyRef = useRef(import.meta.env.VITE_OPENAI_API_KEY || "");
   useEffect(() => {
     setApiKey(apiKeyRef.current);
   }, [setApiKey]);
-  const { recording, source, startRecording, stopRecording, revokeSource } = useAudioRecord();
+  const { recording, source, startRecording, stopRecording, revokeSource } =
+    useAudioRecord();
   const { transcribeText, setTranscribeText, transcribe } = useWhisper(
     apiKeyRef.current
   );
@@ -90,13 +100,16 @@ function App() {
   const { start } = useChatGPT(apiKeyRef.current, setLlmtext);
   const isTranscribingRef = useRef(false);
 
-  const memorizedTransribe = useCallback(async () => {
-    if (!isTranscribingRef.current) {
-      isTranscribingRef.current = true;
-      await transcribe(source);
-      isTranscribingRef.current = false;
-    }
-  }, [transcribe]);
+  const memorizedTransribe = useCallback(
+    async (source_: string) => {
+      if (!isTranscribingRef.current && source) {
+        isTranscribingRef.current = true;
+        await transcribe(source_);
+        isTranscribingRef.current = false;
+      }
+    },
+    [transcribe]
+  );
 
   const [prompt, setPrompt] = useState<string>(`
 ### 指示
@@ -115,10 +128,10 @@ function App() {
 `);
 
   const handleOnClickRecord = () => {
-    revokeSource()
-    setTranscribeText("")
-    startRecording()
-  }
+    revokeSource();
+    setTranscribeText("");
+    startRecording();
+  };
 
   const handleOnClickGPT = () => {
     setLlmtext("");
@@ -136,11 +149,16 @@ ${transcribeText}`;
     if (source) {
       memorizedTransribe(source);
     }
-  }, [source])
+  }, [source]);
 
   return (
     <>
-      <ConfigSection apiKeyRef={apiKeyRef} setApiKey={setApiKey} prompt={prompt} setPrompt={setPrompt}/>
+      <ConfigSection
+        apiKeyRef={apiKeyRef}
+        setApiKey={setApiKey}
+        prompt={prompt}
+        setPrompt={setPrompt}
+      />
       <Box alignItems="center">
         <Flex m={8} alignItems="center" justifyContent="center">
           {!recording && (
@@ -153,7 +171,7 @@ ${transcribeText}`;
               Stop
             </Button>
           )}
-          {!recording &&(
+          {!recording && (
             <Button m={2} colorScheme="blue" onClick={handleOnClickGPT}>
               文章整理
             </Button>
@@ -161,7 +179,9 @@ ${transcribeText}`;
         </Flex>
 
         <Flex m={8} alignItems="center" justifyContent="center">
-          {typeof source === "string" && source && <audio src={source} controls />}
+          {typeof source === "string" && source && (
+            <audio src={source} controls />
+          )}
         </Flex>
 
         <Box m={8} alignItems="center" justifyContent="center">

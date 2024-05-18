@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction } from "react";
-import { useState, useRef, MouseEventHandler } from "react";
+import { useState, useRef } from "react";
 import { ChatOpenAI } from "@langchain/openai";
 import { OpenAI } from "openai";
 
@@ -15,7 +15,7 @@ export const useAudioRecord = () => {
   const chunks = useRef<BlobPart[]>([]);
 
   // 録音開始
-  const startRecording: MouseEventHandler<HTMLButtonElement> = () => {
+  const startRecording = () => {
     navigator.mediaDevices
       .getUserMedia({ audio: true })
       .then((stream) => {
@@ -34,7 +34,7 @@ export const useAudioRecord = () => {
   };
 
   // 録音終了
-  const stopRecording: MouseEventHandler<HTMLButtonElement> = () => {
+  const stopRecording = () => {
     if (!mediaRecorder.current) return;
     setRecording(false);
     mediaRecorder.current.stop();
@@ -54,10 +54,12 @@ export const useAudioRecord = () => {
   };
 
   const revokeSource = () => {
-    const audioUrl = source
-    setSource("")
-    URL.revokeObjectURL(audioUrl)
-  }
+    if (source) {
+      const audioUrl = source;
+      setSource("");
+      URL.revokeObjectURL(audioUrl);
+    }
+  };
   return { recording, source, startRecording, stopRecording, revokeSource };
 };
 
